@@ -1,0 +1,145 @@
+=begin
+                        Arabic Reading Right to left
+
+Author: Bulletxt
+Version: 0.5
+Date: 12/07/2009
+=end
+
+# this is an id switch, if ON it will reverse the letters of a word.
+# example: "Hello World" will be "olleH dlroW"
+REVERSE_LETTERS_OF_WORD = 1
+
+# this is an id switch, if ON it will reverse the words of a sentance including
+# the letters of the word.
+# example: "Hello World" will be "dlroW olleH"
+REVERSE_WORDS_OF_SENTANCE_INCLUDING_LETTERS = 2
+
+
+# NOTE:
+# if REVERSE_LETTERS_OF_WORD and REVERSE_WORDS_OF_SENTANCE_INCLUDING_LETTERS
+# switches are both on, the result will be a revert of the words in a sentance
+# without reverting the letters of the word.
+# example: "Hello World" will be "World Hello"
+
+############################## END CONFIGURATION ###############################
+
+class Window_Message < Window_Selectable
+
+  #--------------------------------------------------------------------------
+  # * Start Message
+  #--------------------------------------------------------------------------
+  def start_message
+    @text = ""
+    for i in 0...$game_message.texts.size
+      @text += "    " if i >= $game_message.choice_start
+      m = $game_message.texts.shift
+
+      
+      m = m.split(//u).reverse.join
+      
+      #"Hello World" will be "olleH dlroW"
+      m = m.split(/ /).map { |w| w.split(//u).reverse.join}.join(' ') if $game_switches[REVERSE_LETTERS_OF_WORD]
+      
+      #"Hello World" will be "dlroW olleH"
+      m = m.split(//u).reverse.join if $game_switches[REVERSE_WORDS_OF_SENTANCE_INCLUDING_LETTERS]
+
+      
+      #debug sentance
+      #p sprintf (m)
+      @text += m + "\x00"
+
+    end
+    @item_max = $game_message.choice_max
+    convert_special_characters
+    reset_window
+    new_page
+  end
+  
+  #--------------------------------------------------------------------------
+  # * New Page
+  #--------------------------------------------------------------------------
+  def new_page
+    contents.clear
+    if $game_message.face_name.empty?
+      @contents_x = 512
+    else
+      name = $game_message.face_name
+      index = $game_message.face_index
+      draw_face(name, index, 416, 0)
+      @contents_x = 406
+    end
+    @contents_y = 0
+    @line_count = 0
+    @show_fast = false
+    @line_show_fast = false
+    @pause_skip = false
+    contents.font.color = text_color(0)
+  end
+  #--------------------------------------------------------------------------
+  # * New Line
+  #--------------------------------------------------------------------------
+  def new_line
+    if $game_message.face_name.empty?
+      @contents_x = 512
+    else
+      @contents_x = 406
+    end
+    @contents_y += WLH
+    @line_count += 1
+    @line_show_fast = false
+  end
+
+  #--------------------------------------------------------------------------
+  # * Update Message
+  #--------------------------------------------------------------------------
+  def update_message
+    loop do
+      c = @text.slice!(/./m)            # Get next text character
+      case c
+      when nil                          # There is no text that must be drawn
+        finish_message                  # Finish update
+        break
+      when "\x00"                       # New line
+        new_line
+        if @line_count >= MAX_LINE      # If line count is maximum
+          unless @text.empty?           # If there is more
+            self.pause = true           # Insert number input
+            break
+          end
+        end
+      when "\x01"                       # \C[n]  (text character color change)
+        @text.sub!(/\[([0-9]+)\]/, "")
+        contents.font.color = text_color($1.to_i)
+        next
+      when "\x02"                       # \G  (gold display)
+        @gold_window.refresh
+        @gold_window.open
+      when "\x03"                       # \.  (wait 1/4 second)
+        @wait_count = 15
+        break
+      when "\x04"                       # \|  (wait 1 second)
+        @wait_count = 60
+        break
+      when "\x05"                       # \!  (Wait for input)
+        self.pause = true
+        break
+      when "\x06"                       # \>  (Fast display ON)
+        @line_show_fast = true
+      when "\x07"                       # \<  (Fast display OFF)
+        @line_show_fast = false
+      when "\x08"                       # \^  (No wait for input)
+        @pause_skip = true
+      else                              # Normal text character
+        c_width = contents.text_size(c).width
+
+          @contents_x -= c_width
+        
+        contents.draw_text(@contents_x, @contents_y, 40, WLH, c)
+
+      end
+      break unless @show_fast or @line_show_fast
+    end
+  end
+  
+end
