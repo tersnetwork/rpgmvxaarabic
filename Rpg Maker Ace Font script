@@ -1,0 +1,9 @@
+#==============================================================================
+# Script that changes the default font settings.
+#==============================================================================
+
+Font.default_size = 20 # Default - 20
+Font.default_name = ["Tahoma"] # Font names are used in order. If the first is not available, the second will be used, etc..
+Font.default_bold = false # Default - FALSE
+Font.default_italic = false # Default - FALSE
+Font.default_shadow = false # Default - TRUE
